@@ -1,5 +1,7 @@
 # Recruitment take-home pipeline
 
+[![Tests](https://github.com/james-bongiorno/recruitment-take-home-pipeline/actions/workflows/tests.yml/badge.svg)](https://github.com/james-bongiorno/recruitment-take-home-pipeline/actions/workflows/tests.yml)
+
 Run take-home coding challenges entirely on GitHub. One click gives a candidate their own private repository with the challenge in it. They submit by opening a pull request, and everything they do lands in a log you can read. At the deadline their access becomes read-only, and when you're done reviewing, one more click cleans everything up.
 
 - **Candidate repos made for you:** a private repo per candidate, containing only the starter files for the challenges you pick. Answer keys never leave this repo.
