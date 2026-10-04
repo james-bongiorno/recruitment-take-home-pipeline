@@ -1,0 +1,57 @@
+name: Sync submissions
+
+on:
+  schedule:
+    - cron: "23 * * * *" # hourly
+  workflow_dispatch: {}
+
+permissions:
+  contents: write # commit logs and snapshots to this repo
+
+concurrency:
+  group: hiring-candidates
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    if: vars.HIRING_ORG != ''  # not set up yet (for example, the public template)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Anyone under review?
+        id: check
+        run: |
+          if compgen -G "candidates/under-review/*/candidate.json" > /dev/null; then
+            echo "any=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "No candidates under review." | tee -a "$GITHUB_STEP_SUMMARY"
+          fi
+
+      - name: Make sure this repository is private
+        if: steps.check.outputs.any == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          ALLOW_PUBLIC_REPO: ${{ vars.ALLOW_PUBLIC_REPO }}
+        run: scripts/require_private_repo.sh
+
+      - name: Get a token for the hiring org
+        id: app
+        if: steps.check.outputs.any == 'true'
+        uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1 # v3.2.0
+        with:
+          app-id: ${{ vars.HIRING_APP_ID }}
+          private-key: ${{ secrets.HIRING_APP_PRIVATE_KEY }}
+          owner: ${{ vars.HIRING_ORG }}
+
+      - name: Sync
+        if: steps.check.outputs.any == 'true'
+        env:
+          GH_TOKEN: ${{ steps.app.outputs.token }}
+          HIRING_TIMEZONE: ${{ vars.HIRING_TIMEZONE }}
+        run: python3 scripts/sync_submissions.py
+
+      - name: Commit logs and snapshots
+        if: always() && steps.check.outputs.any == 'true'
+        run: scripts/commit_candidates.sh "Sync candidate submissions"

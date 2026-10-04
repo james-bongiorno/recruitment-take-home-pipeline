@@ -1,0 +1,48 @@
+name: Tests
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+jobs:
+  pipeline:
+    name: Pipeline scripts
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Lint shell scripts
+        run: shellcheck scripts/*.sh
+      - name: Unit tests (fake GitHub API)
+        run: |
+          python3 -m venv .venv
+          .venv/bin/pip install -q pytest
+          .venv/bin/python -m pytest scripts/tests -q
+
+  challenges:
+    name: Take-home challenges
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Python tools
+        run: |
+          python3 -m venv "$RUNNER_TEMP/venv"
+          "$RUNNER_TEMP/venv/bin/pip" install -q pytest fastapi uvicorn httpx
+          echo "$RUNNER_TEMP/venv/bin" >> "$GITHUB_PATH"
+      - name: Starters fail, references pass
+        run: scripts/verify_challenges.sh
+
+  interview:
+    name: Interview problems
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Problems fail 5 checks, answer keys pass 7
+        run: scripts/verify_interview.sh

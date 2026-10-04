@@ -1,0 +1,80 @@
+name: Create coding challenge
+
+on:
+  workflow_dispatch:
+    inputs:
+      first_name:
+        description: First name
+        required: true
+      last_name:
+        description: Last name
+        required: true
+      challenges:
+        description: "Challenge numbers, comma or space separated. 1 = Event RSVP API + invoice bug hunt (backend), 2 = Door check-in list (frontend), 3 = Ticket sales database (data layer)"
+        required: true
+      github_usernames:
+        description: "Candidate's GitHub username(s), comma or space separated (not emails)"
+        required: true
+      deadline_hours:
+        description: Hours until access becomes read-only
+        required: true
+        default: "48"
+      dry_run:
+        description: Dry run (show what would happen, create nothing)
+        type: boolean
+        default: false
+
+permissions:
+  contents: write # commit the candidate folder to this repo
+
+concurrency:
+  group: hiring-candidates
+  cancel-in-progress: false
+
+jobs:
+  create:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Make sure this repository is private
+        if: ${{ !inputs.dry_run }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+          ALLOW_PUBLIC_REPO: ${{ vars.ALLOW_PUBLIC_REPO }}
+        run: scripts/require_private_repo.sh
+
+      - name: Get a token for the hiring org
+        id: app
+        if: ${{ !inputs.dry_run }}
+        uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1 # v3.2.0
+        with:
+          app-id: ${{ vars.HIRING_APP_ID }}
+          private-key: ${{ secrets.HIRING_APP_PRIVATE_KEY }}
+          owner: ${{ vars.HIRING_ORG }}
+
+      - name: Create the challenge
+        env:
+          GH_TOKEN: ${{ steps.app.outputs.token }}
+          HIRING_TIMEZONE: ${{ vars.HIRING_TIMEZONE }}
+          APP_SLUG: ${{ steps.app.outputs.app-slug }}
+          HIRING_ORG: ${{ vars.HIRING_ORG }}
+          FIRST: ${{ inputs.first_name }}
+          LAST: ${{ inputs.last_name }}
+          CHALLENGES: ${{ inputs.challenges }}
+          USERNAMES: ${{ inputs.github_usernames }}
+          DEADLINE_HOURS: ${{ inputs.deadline_hours }}
+          DRY_RUN: ${{ inputs.dry_run }}
+        run: |
+          args=(--first "$FIRST" --last "$LAST" --challenges "$CHALLENGES"
+                --usernames "$USERNAMES" --deadline-hours "$DEADLINE_HOURS")
+          if [ "$DRY_RUN" = "true" ]; then args+=(--dry-run); fi
+          python3 scripts/create_challenge.py "${args[@]}"
+
+      - name: Commit the candidate folder
+        if: ${{ !inputs.dry_run }}
+        env:
+          FIRST: ${{ inputs.first_name }}
+          LAST: ${{ inputs.last_name }}
+        run: scripts/commit_candidates.sh "Add coding challenge for $FIRST $LAST"

@@ -1,0 +1,23 @@
+{
+  "1": {
+    "title": "Event RSVP API + invoice bug hunt",
+    "area": "Backend",
+    "minutes": 100,
+    "folders": [
+      "coding_challenges/event-rsvp-take-home/01-rsvp-api",
+      "coding_challenges/event-rsvp-take-home/02-invoice-bug-hunt"
+    ]
+  },
+  "2": {
+    "title": "Door check-in list",
+    "area": "Frontend",
+    "minutes": 75,
+    "folders": ["coding_challenges/attendee-checkin/checkin"]
+  },
+  "3": {
+    "title": "Ticket sales database",
+    "area": "Data layer",
+    "minutes": 75,
+    "folders": ["coding_challenges/ticket-sales/ticket-sales"]
+  }
+}

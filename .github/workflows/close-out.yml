@@ -1,0 +1,53 @@
+name: Close out candidate
+
+on:
+  workflow_dispatch:
+    inputs:
+      candidate:
+        description: "Candidate folder under candidates/under-review, e.g. bongiorno_james"
+        required: true
+      note:
+        description: Optional note for their log (e.g. "advance to onsite")
+        required: false
+        default: ""
+
+permissions:
+  contents: write # move the candidate folder in this repo
+
+concurrency:
+  group: hiring-candidates
+  cancel-in-progress: false
+
+jobs:
+  close:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Make sure this repository is private
+        env:
+          GH_TOKEN: ${{ github.token }}
+          ALLOW_PUBLIC_REPO: ${{ vars.ALLOW_PUBLIC_REPO }}
+        run: scripts/require_private_repo.sh
+
+      - name: Get a token for the hiring org
+        id: app
+        uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1 # v3.2.0
+        with:
+          app-id: ${{ vars.HIRING_APP_ID }}
+          private-key: ${{ secrets.HIRING_APP_PRIVATE_KEY }}
+          owner: ${{ vars.HIRING_ORG }}
+
+      - name: Close out
+        env:
+          GH_TOKEN: ${{ steps.app.outputs.token }}
+          HIRING_TIMEZONE: ${{ vars.HIRING_TIMEZONE }}
+          CANDIDATE: ${{ inputs.candidate }}
+          NOTE: ${{ inputs.note }}
+        run: python3 scripts/close_out.py --candidate "$CANDIDATE" --note "$NOTE"
+
+      - name: Commit
+        env:
+          CANDIDATE: ${{ inputs.candidate }}
+        run: scripts/commit_candidates.sh "Close out $CANDIDATE"

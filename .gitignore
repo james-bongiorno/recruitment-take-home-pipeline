@@ -1,0 +1,20 @@
+# Dependencies and build output
+node_modules/
+dist/
+.venv/
+__pycache__/
+.pytest_cache/
+*.pyc
+
+# Local databases made while testing the data-layer challenge
+*.db
+*.sqlite
+
+# Candidate folders hold code submissions and activity logs only.
+# Resumes and interview notes never go in git, so block the usual document formats there.
+candidates/**/*.pdf
+candidates/**/*.doc
+candidates/**/*.docx
+candidates/**/*.pages
+
+.DS_Store
